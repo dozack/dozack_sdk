@@ -17,7 +17,15 @@
  ******************************************************************************
  */
 
+#include "system.h"
+
 int main(void)
 {
+    system_init();
+
 	for(;;);
+}
+
+void SysTick_Handler(void){
+
 }
