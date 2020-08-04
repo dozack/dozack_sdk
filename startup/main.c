@@ -21,11 +21,7 @@
 
 int main(void)
 {
-    system_init();
+    tests_run();
 
 	for(;;);
-}
-
-void SysTick_Handler(void){
-
 }
