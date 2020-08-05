@@ -16,6 +16,8 @@ void tests_run(void);
 
 void tests_system(void);
 
+void tests_exti(void);
+
 #ifdef __cplusplus
 }
 #endif
