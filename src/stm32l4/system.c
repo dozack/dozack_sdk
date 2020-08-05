@@ -5,6 +5,8 @@
  * @brief 
  */
 
+#include "irq.h"
+#include "tick.h"
 #include "system.h"
 #include "stm32l4xx.h"
 
@@ -16,14 +18,14 @@ static const uint32_t _system_clock_table[3] = {
 static uint32_t _system_hsi16_semaphore;
 static uint32_t _system_pll_semaphore;
 
-static void _system_init_flash (void);
-static void _system_init_debug (void);
-static void _system_init_clock (void);
-static void _system_init_power (void);
-static void _system_init_rtc (void);
-static void _system_switch_clock (system_clock_t clock);
+static void _system_init_flash(void);
+static void _system_init_debug(void);
+static void _system_init_clock(void);
+static void _system_init_power(void);
+static void _system_init_rtc(void);
+static void _system_switch_clock(system_clock_t clock);
 
-system_clock_t system_get_clock_source (void) {
+system_clock_t system_get_clock_source(void) {
     if (_system_pll_semaphore) {
         return SYSTEM_CLOCK_PLL;
     }
@@ -35,11 +37,11 @@ system_clock_t system_get_clock_source (void) {
     }
 }
 
-uint32_t system_get_clock_frequency (void) {
+uint32_t system_get_clock_frequency(void) {
     return SystemCoreClock;
 }
 
-void system_init (void) {
+void system_init(void) {
     _system_init_flash();
 
     _system_init_debug();
@@ -51,12 +53,12 @@ void system_init (void) {
     _system_init_rtc();
 }
 
-static void _system_init_flash (void) {
+static void _system_init_flash(void) {
     FLASH->ACR |= FLASH_ACR_PRFTEN;
     //FLASH->ACR |= FLASH_ACR_LATENCY;
 }
 
-static void _system_init_debug (void) {
+static void _system_init_debug(void) {
 #if (CONFIG_SYSTEM_DEBUG == 1)
     DBGMCU->CR |= DBGMCU_CR_DBG_STANDBY | DBGMCU_CR_DBG_STOP | DBGMCU_CR_DBG_SLEEP;
     DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_IWDG_STOP | DBGMCU_APB1FZR1_DBG_LPTIM1_STOP;
@@ -71,7 +73,7 @@ static void _system_init_debug (void) {
 #endif
 }
 
-static void _system_init_clock (void) {
+static void _system_init_clock(void) {
     SystemCoreClock = 4000000;
 
     RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
@@ -92,11 +94,11 @@ static void _system_init_clock (void) {
     SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
 }
 
-static void _system_init_power (void) {
+static void _system_init_power(void) {
     RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
 }
 
-static void _system_init_rtc (void) {
+static void _system_init_rtc(void) {
     PWR->CR1 |= PWR_CR1_DBP;
 
     RCC->BDCR |= RCC_BDCR_LSEDRV;
@@ -145,18 +147,18 @@ static void _system_init_rtc (void) {
     NVIC_EnableIRQ(RTC_WKUP_IRQn);
 }
 
-static void _system_switch_clock (system_clock_t clock) {
+static void _system_switch_clock(system_clock_t clock) {
     /* enter critical section - disable irq */
-    __disable_irq();
+    irq_disable();
 
     uint32_t mask = _system_clock_table[clock];
 
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | mask;
 
     /* leave critical section - enable irq again */
-    __enable_irq();
+    irq_enable();
 }
-void system_hsi16_enable (void) {
+void system_hsi16_enable(void) {
     _system_hsi16_semaphore++;
 
     if (_system_hsi16_semaphore == 1) {
@@ -174,7 +176,7 @@ void system_hsi16_enable (void) {
     }
 }
 
-void system_hsi16_disable (void) {
+void system_hsi16_disable(void) {
     _system_hsi16_semaphore--;
 
     if (_system_hsi16_semaphore == 0) {
@@ -192,7 +194,7 @@ void system_hsi16_disable (void) {
     }
 }
 
-void system_pll_enable (void) {
+void system_pll_enable(void) {
     _system_pll_semaphore++;
 
     if (_system_pll_semaphore == 1) {
@@ -213,7 +215,7 @@ void system_pll_enable (void) {
     }
 }
 
-void system_pll_disable (void) {
+void system_pll_disable(void) {
     _system_pll_semaphore--;
 
     if (_system_pll_semaphore == 0) {
@@ -229,15 +231,11 @@ void system_pll_disable (void) {
     }
 }
 
-void system_reset (void) {
+void system_reset(void) {
     NVIC_SystemReset();
 }
 
-__attribute__((weak)) void SysTick_Handler (void) {
-    RCC->CFGR;
-}
-
-void RTC_WKUP_IRQHandler (void) {
+void RTC_WKUP_IRQHandler(void) {
     if (RTC->ISR & RTC_ISR_WUTF) {
         PWR->CR1 |= PWR_CR1_DBP;
 
@@ -246,11 +244,25 @@ void RTC_WKUP_IRQHandler (void) {
 
         RTC->ISR &= ~RTC_ISR_WUTF;
 
+        tick_increment_irq(10);
+
         RTC->WPR = 0x00;
 
         PWR->CR1 &= ~PWR_CR1_DBP;
     }
 
     EXTI->PR1 = EXTI_PR1_PIF20;
+}
+
+__attribute__((weak)) void SysTick_Handler(void) {
+    RCC->CFGR;
+}
+
+__attribute__((weak)) void system_error(void) {
+    while (1);
+}
+
+void HardFault_Handler(void) {
+    system_error();
 }
 

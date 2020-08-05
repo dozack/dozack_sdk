@@ -19,9 +19,8 @@
 
 #include "system.h"
 
-int main(void)
-{
+int main(void) {
     tests_run();
 
-	for(;;);
+    for (;;);
 }
