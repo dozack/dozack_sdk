@@ -18,6 +18,8 @@ void tests_system(void);
 
 void tests_exti(void);
 
+void tests_gpio(void);
+
 #ifdef __cplusplus
 }
 #endif

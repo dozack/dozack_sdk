@@ -7,9 +7,13 @@
 
 #include "tests.h"
 void tests_run(void) {
+#if 1
     tests_system();
 
+    tests_gpio();
+
     tests_exti();
+#endif
 }
 
 #include "system.h"
@@ -37,19 +41,66 @@ void tests_system(void) {
     system_pll_disable();
 }
 
-#include "exti.h"
-void tests_exti(void) {
-    exti_register(EXTI_LINE_PG12, EXTI_EDGE_RISING, NULL, NULL);
-    exti_unregister(EXTI_LINE_PG12);
-    exti_register(EXTI_LINE_PB12, EXTI_EDGE_RISING, NULL, NULL);
-    exti_unregister(EXTI_LINE_PB12);
-    exti_register(EXTI_LINE_PA15, EXTI_EDGE_RISING, NULL, NULL);
-    exti_unregister(EXTI_LINE_PA15);
-    exti_register(EXTI_LINE_PB15, EXTI_EDGE_RISING, NULL, NULL);
-    exti_unregister(EXTI_LINE_PB15);
-    exti_register(EXTI_LINE_PC0, EXTI_EDGE_RISING, NULL, NULL);
-    exti_unregister(EXTI_LINE_PC0);
-    exti_register(EXTI_LINE_PD0, EXTI_EDGE_RISING, NULL, NULL);
-    exti_unregister(EXTI_LINE_PD0);
+#include "gpio.h"
+void tests_gpio(void) {
+    gpio_enable_port(GPIO_PORT_C);
 
+    gpio_mode_t mode;
+    gpio_pull_t pull;
+    gpio_alternate_t af;
+    bool input = false;
+    bool output = false;
+
+    gpio_set_mode(GPIO_PORT_C, GPIO_PIN_13, GPIO_MODE_OUTPUT_OD);
+
+    mode = gpio_get_mode(GPIO_PORT_C, GPIO_PIN_13);
+
+    gpio_set_mode(GPIO_PORT_C, GPIO_PIN_13, GPIO_MODE_INPUT);
+
+    mode = gpio_get_mode(GPIO_PORT_C, GPIO_PIN_13);
+
+    gpio_set_pull(GPIO_PORT_C, GPIO_PIN_13, GPIO_PULL_UP);
+
+    pull = gpio_get_pull(GPIO_PORT_C, GPIO_PIN_13);
+
+    gpio_enable_port(GPIO_PORT_A);
+
+    gpio_set_mode(GPIO_PORT_A, GPIO_PIN_9, GPIO_MODE_ALTERNATE);
+
+    gpio_set_mode(GPIO_PORT_A, GPIO_PIN_9, GPIO_MODE_OUTPUT);
+
+    gpio_set_alternate(GPIO_PORT_A, GPIO_PIN_9, GPIO_MODE_ALTERNATE_11);
+
+    af = gpio_get_alternate(GPIO_PORT_A, GPIO_PIN_9);
+
+    input = gpio_get_input(GPIO_PORT_C, GPIO_PIN_13);
+
+    input = gpio_get_input(GPIO_PORT_A, GPIO_PIN_9);
+
+    gpio_set_mode(GPIO_PORT_A, GPIO_PIN_5, GPIO_MODE_OUTPUT);
+
+    gpio_set_output(GPIO_PORT_A, GPIO_PIN_5, !output);
+
+    output = gpio_get_output(GPIO_PORT_A, GPIO_PIN_5);
+
+    gpio_set_output(GPIO_PORT_A, GPIO_PIN_5, !output);
+
+    output = gpio_get_output(GPIO_PORT_A, GPIO_PIN_5);
+
+    gpio_toggle_output(GPIO_PORT_A, GPIO_PIN_5);
+    gpio_toggle_output(GPIO_PORT_A, GPIO_PIN_5);
+}
+
+#include "tick.h"
+#include "irq.h"
+#include "exti.h"
+void dummy_callback(exti_line_t line, void *param) {
+    gpio_toggle_output(GPIO_PORT_A, GPIO_PIN_5);
+    tick_wait(500);
+    gpio_toggle_output(GPIO_PORT_A, GPIO_PIN_5);
+    return;
+}
+
+void tests_exti(void) {
+    exti_register(EXTI_LINE_PC13, EXTI_EDGE_FALLING, &dummy_callback, NULL);
 }

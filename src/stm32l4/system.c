@@ -237,6 +237,8 @@ void system_reset(void) {
 
 void RTC_WKUP_IRQHandler(void) {
     if (RTC->ISR & RTC_ISR_WUTF) {
+        irq_disable();
+
         PWR->CR1 |= PWR_CR1_DBP;
 
         RTC->WPR = 0xca;
@@ -249,20 +251,23 @@ void RTC_WKUP_IRQHandler(void) {
         RTC->WPR = 0x00;
 
         PWR->CR1 &= ~PWR_CR1_DBP;
+
+        irq_enable();
     }
 
     EXTI->PR1 = EXTI_PR1_PIF20;
 }
 
 __attribute__((weak)) void SysTick_Handler(void) {
-    RCC->CFGR;
+    return;
 }
 
-__attribute__((weak)) void system_error(void) {
-    while (1);
+__attribute__((weak)) void system_hard_fault(void) {
+    system_reset();
+    return;
 }
 
 void HardFault_Handler(void) {
-    system_error();
+    system_hard_fault();
 }
 

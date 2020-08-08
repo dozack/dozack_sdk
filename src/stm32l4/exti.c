@@ -40,12 +40,19 @@ void exti_register(exti_line_t line, exti_edge_t edge, void (*callback)(exti_lin
         RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
         NVIC_EnableIRQ(EXTI0_IRQn);
+        NVIC_SetPriority(EXTI0_IRQn, 1);
         NVIC_EnableIRQ(EXTI1_IRQn);
+        NVIC_SetPriority(EXTI1_IRQn, 1);
         NVIC_EnableIRQ(EXTI2_IRQn);
+        NVIC_SetPriority(EXTI2_IRQn, 1);
         NVIC_EnableIRQ(EXTI3_IRQn);
+        NVIC_SetPriority(EXTI3_IRQn, 1);
         NVIC_EnableIRQ(EXTI4_IRQn);
+        NVIC_SetPriority(EXTI4_IRQn, 1);
         NVIC_EnableIRQ(EXTI9_5_IRQn);
+        NVIC_SetPriority(EXTI9_5_IRQn, 1);
         NVIC_EnableIRQ(EXTI15_10_IRQn);
+        NVIC_SetPriority(EXTI15_10_IRQn, 1);
     }
 
     pin_ = pin >> 2;
