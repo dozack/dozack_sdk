@@ -20,6 +20,8 @@ void tests_exti(void);
 
 void tests_gpio(void);
 
+void tests_scheduler(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -11,9 +11,13 @@ void tests_run(void) {
     tests_system();
 
     tests_gpio();
+#endif
 
+#if 0
     tests_exti();
 #endif
+
+    tests_scheduler();
 }
 
 #include "system.h"
@@ -103,4 +107,36 @@ void dummy_callback(exti_line_t line, void *param) {
 
 void tests_exti(void) {
     exti_register(EXTI_LINE_PC13, EXTI_EDGE_FALLING, &dummy_callback, NULL);
+}
+
+#include "scheduler.h"
+scheduler_task_id_t empty;
+scheduler_task_id_t id_on;
+scheduler_task_id_t id_off;
+
+void empty_task(void *param){
+    return;
+}
+
+void led_off_task(void* param){
+    gpio_set_output(GPIO_PORT_A, GPIO_PIN_5, false);
+
+    scheduler_plan_relative(id_on, 500);
+}
+
+void led_on_task(void* param){
+    gpio_set_output(GPIO_PORT_A, GPIO_PIN_5, true);
+
+    scheduler_plan_relative(id_off, 500);
+}
+void tests_scheduler(void){
+    scheduler_init();
+
+    id_on = scheduler_register_task(led_on_task, NULL, TICK_INFINITE);
+    id_off = scheduler_register_task(led_off_task, NULL, TICK_INFINITE);
+    empty = scheduler_register_task(empty_task, NULL, TICK_INFINITE);
+
+    scheduler_unregister_task(empty);
+    scheduler_plan_from_now(id_on, 500);
+    scheduler_run();
 }

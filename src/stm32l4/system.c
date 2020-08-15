@@ -11,9 +11,9 @@
 #include "stm32l4xx.h"
 
 static const uint32_t _system_clock_table[3] = {
-        RCC_CFGR_SW_MSI,
-        RCC_CFGR_SW_HSI,
-        RCC_CFGR_SW_PLL};
+    RCC_CFGR_SW_MSI,
+    RCC_CFGR_SW_HSI,
+    RCC_CFGR_SW_PLL};
 
 static uint32_t _system_hsi16_semaphore;
 static uint32_t _system_pll_semaphore;
@@ -267,7 +267,7 @@ __attribute__((weak)) void system_hard_fault(void) {
     return;
 }
 
-void HardFault_Handler(void) {
+__attribute__((weak)) void HardFault_Handler(void) {
     system_hard_fault();
 }
 

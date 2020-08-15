@@ -10,22 +10,22 @@
 #include "stm32l4xx.h"
 
 GPIO_TypeDef *const _gpio_port[] = {
-        GPIOA,
-        GPIOB,
-        GPIOC,
-        GPIOD,
-        GPIOE,
-        GPIOF,
-        GPIOG};
+    GPIOA,
+    GPIOB,
+    GPIOC,
+    GPIOD,
+    GPIOE,
+    GPIOF,
+    GPIOG};
 
 static const uint32_t _gpio_port_en[] = {
-        RCC_AHB2ENR_GPIOAEN,
-        RCC_AHB2ENR_GPIOBEN,
-        RCC_AHB2ENR_GPIOCEN,
-        RCC_AHB2ENR_GPIODEN,
-        RCC_AHB2ENR_GPIOEEN,
-        RCC_AHB2ENR_GPIOFEN,
-        RCC_AHB2ENR_GPIOGEN};
+    RCC_AHB2ENR_GPIOAEN,
+    RCC_AHB2ENR_GPIOBEN,
+    RCC_AHB2ENR_GPIOCEN,
+    RCC_AHB2ENR_GPIODEN,
+    RCC_AHB2ENR_GPIOEEN,
+    RCC_AHB2ENR_GPIOFEN,
+    RCC_AHB2ENR_GPIOGEN};
 
 void gpio_enable_port(gpio_port_t port) {
     RCC->AHB2ENR |= _gpio_port_en[port];
