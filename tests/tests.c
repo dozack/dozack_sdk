@@ -11,13 +11,17 @@ void tests_run(void) {
     tests_system();
 
     tests_gpio();
+
+    tests_fifo();
 #endif
 
 #if 0
     tests_exti();
-#endif
+
 
     tests_scheduler();
+
+#endif
 }
 
 #include "system.h"
@@ -139,4 +143,38 @@ void tests_scheduler(void){
     scheduler_unregister_task(empty);
     scheduler_plan_from_now(id_on, 500);
     scheduler_run();
+}
+
+#include "fifo.h"
+typedef struct {
+        uint8_t byte_;
+        uint16_t word_;
+        uint32_t long_;
+}dummy_t;
+
+static dummy_t _dummy_buffer[4];
+
+fifo_t dummy_fifo;
+
+void tests_fifo(void){
+    fifo_init(&dummy_fifo, _dummy_buffer, sizeof(dummy_fifo));
+
+    dummy_t _dummy_0 = {
+        .byte_ = 0x7f,
+        .word_ = 0xabcd,
+        .long_ = 0xdeadbeef
+    };
+
+    fifo_write(&dummy_fifo, &_dummy_0, sizeof(dummy_t));
+
+    _dummy_0.byte_ = 0xac;
+    _dummy_0.word_ = 0xfffa;
+    _dummy_0.long_ = 0xdeadf00d;
+
+    fifo_write(&dummy_fifo, &_dummy_0, sizeof(dummy_t));
+
+    dummy_t _dummy = {0};
+
+    fifo_read(&dummy_fifo, &_dummy, sizeof(dummy_t));
+    fifo_read(&dummy_fifo, &_dummy, sizeof(dummy_t));
 }

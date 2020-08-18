@@ -22,6 +22,8 @@ void tests_gpio(void);
 
 void tests_scheduler(void);
 
+void tests_fifo(void);
+
 #ifdef __cplusplus
 }
 #endif

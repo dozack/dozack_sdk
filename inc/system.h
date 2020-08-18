@@ -20,12 +20,19 @@ typedef enum {
 } system_clock_t;
 
 system_clock_t system_get_clock_source(void);
+
 uint32_t system_get_clock_frequency(void);
+
 void system_init(void);
+
 void system_hsi16_enable(void);
+
 void system_hsi16_disable(void);
+
 void system_pll_enable(void);
+
 void system_pll_disable(void);
+
 void system_reset(void);
 
 #ifdef __cplusplus

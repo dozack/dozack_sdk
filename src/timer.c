@@ -9,7 +9,7 @@
 #include "system.h"
 #include "stm32l4xx.h"
 
-static const _timer_prescaler_lookup[] = {
+static const uint16_t _timer_prescaler_lookup[] = {
     3,
     15,
     79};
@@ -35,7 +35,7 @@ uint16_t timer_get_microseconds(void) {
 void timer_delay(uint16_t microseconds) {
     uint16_t usec = timer_get_microseconds() + microseconds;
 
-    while (timer_get_microseconds() < used);
+    while (timer_get_microseconds() < usec);
 }
 
 void timer_clear(void) {
