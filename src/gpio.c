@@ -4,116 +4,118 @@
  *  Created on: Aug 7, 2020
  *      Author: zdole
  */
-
-#include "irq.h"
 #include "gpio.h"
-#include "stm32l4xx.h"
 
-GPIO_TypeDef *const _gpio_port[] = {
-    GPIOA,
-    GPIOB,
-    GPIOC,
-    GPIOD,
-    GPIOE,
-    GPIOF,
-    GPIOG};
+uint32_t gpio_pin_read(uint32_t pin) {
+    GPIO_TypeDef *gpio;
 
-static const uint32_t _gpio_port_en[] = {
-    RCC_AHB2ENR_GPIOAEN,
-    RCC_AHB2ENR_GPIOBEN,
-    RCC_AHB2ENR_GPIOCEN,
-    RCC_AHB2ENR_GPIODEN,
-    RCC_AHB2ENR_GPIOEEN,
-    RCC_AHB2ENR_GPIOFEN,
-    RCC_AHB2ENR_GPIOGEN};
+    uint32_t group, index;
 
-void gpio_enable_port(gpio_port_t port) {
-    RCC->AHB2ENR |= _gpio_port_en[port];
+    group = (pin & GPIO_PIN_GROUP_MASK) >> GPIO_PIN_GROUP_SHIFT;
+    index = (pin & GPIO_PIN_INDEX_MASK) >> GPIO_PIN_INDEX_SHIFT;
+
+    gpio = (GPIO_TypeDef*) (GPIOA_BASE + ((GPIOB_BASE - GPIOA_BASE) * group));
+
+    return ((gpio->IDR >> index) & 1);
 }
 
-void gpio_set_pull(gpio_port_t port, gpio_pin_t pin, gpio_pull_t pull) {
-    uint32_t _pin_mask = 0x3 << (pin << 1);
-    irq_disable();
-    _gpio_port[port]->PUPDR &= ~_pin_mask;
-    _gpio_port[port]->PUPDR |= pull << (pin * 2);
-    irq_enable();
-}
+void gpio_pin_write(uint32_t pin, uint32_t data) {
+    GPIO_TypeDef *gpio;
 
-gpio_pull_t gpio_get_pull(gpio_port_t port, gpio_pin_t pin) {
-    uint32_t _pin_mask = 0x3 << (pin << 1);
-    return (gpio_pull_t) ((_gpio_port[port]->PUPDR & _pin_mask) >> (pin * 2));
-}
+    uint32_t group, index;
 
-void gpio_set_mode(gpio_port_t port, gpio_pin_t pin, gpio_mode_t mode) {
-    uint32_t _pin_mask = 0x3 << (pin << 1);
-    irq_disable();
-    if (mode == GPIO_MODE_OUTPUT_OD) {
-        _gpio_port[port]->OTYPER |= 0x1 << pin;
-        mode = GPIO_MODE_OUTPUT;
+    group = (pin & GPIO_PIN_GROUP_MASK) >> GPIO_PIN_GROUP_SHIFT;
+    index = (pin & GPIO_PIN_INDEX_MASK) >> GPIO_PIN_INDEX_SHIFT;
+
+    gpio = (GPIO_TypeDef*) (GPIOA_BASE + ((GPIOB_BASE - GPIOA_BASE) * group));
+
+    if (data)
+    {
+        gpio->BSRR = (1 << index);
     }
-    else if ((_gpio_port[port]->OTYPER & (0x1 << pin) >> pin)) {
-        _gpio_port[port]->OTYPER &= ~(0x1 << pin);
+    else
+    {
+        gpio->BRR = (1 << index);
     }
-    else if (mode == GPIO_MODE_ALTERNATE) {
-        _gpio_port[port]->OSPEEDR |= _pin_mask;
+}
+
+void gpio_pin_configure(uint32_t pin, uint32_t mode) {
+    GPIO_TypeDef *gpio;
+
+    uint32_t group, index, afsel;
+
+    afsel = (pin >> 8) & 0xf;
+    group = (pin >> 4) & 0x7;
+    index = (pin >> 0) & 0xf;
+
+    gpio = (GPIO_TypeDef*) (GPIOA_BASE + ((GPIOB_BASE - GPIOA_BASE) * group));
+
+    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN << group;
+
+    gpio->MODER |= (0x3 << (index << 1));
+
+#if defined STM32L476xx
+    gpio->ASCR &= ~(0x1 << index);
+#endif
+    gpio->OTYPER = ((gpio->OTYPER & ~(0x1 << index)) | (((mode & GPIO_OTYPE_MASK) >> GPIO_OTYPE_SHIFT) << (index << 1)));
+
+    gpio->OSPEEDR = ((gpio->OSPEEDR & ~(0x3 << (index << 1))) | (((mode & GPIO_OSPEED_MASK) >> GPIO_OSPEED_SHIFT) << (index << 1)));
+
+    gpio->PUPDR = ((gpio->PUPDR & ~(0x3 << (index << 1))) | (((mode & GPIO_PUPD_MASK) >> GPIO_PUPD_SHIFT) << (index << 1)));
+
+    gpio->AFR[index >> 3] = ((gpio->AFR[index >> 3] & ~(0xf << ((index & 0x7) << 2))) | (afsel << ((index & 7) << 2)));
+
+    if ((mode & GPIO_MODE_MASK) == GPIO_MODE_ANALOG)
+    {
+#if defined STM32L476xx
+        if (mode & GPIO_ANALOG_SWITCH)
+        {
+            gpio->ASCR |= (0x1 << index);
+        }
+#endif
     }
-    else if (mode != GPIO_MODE_ALTERNATE
-            && ((_gpio_port[port]->OSPEEDR & _pin_mask) >> (pin << 1))) {
-        _gpio_port[port]->OSPEEDR &= ~_pin_mask;
+    else
+    {
+        gpio->MODER = ((gpio->MODER & ~(0x3 << (index << 1))) | (((mode & GPIO_MODE_MASK) >> GPIO_MODE_SHIFT) << (index << 1)));
     }
-    _gpio_port[port]->MODER &= ~_pin_mask;
-    _gpio_port[port]->MODER |= mode << (pin << 1);
-    irq_enable();
 }
 
-gpio_mode_t gpio_get_mode(gpio_port_t port, gpio_pin_t pin) {
-    uint32_t _pin_mask = 0x3 << (pin << 1);
-    gpio_mode_t _mode = (_gpio_port[port]->MODER & _pin_mask) >> (pin << 1);
+void gpio_pin_input(uint32_t pin) {
+    GPIO_TypeDef *gpio;
 
-    if (_mode == GPIO_MODE_OUTPUT && ((_gpio_port[port]->OTYPER & (1 << pin)) >> pin)) {
-        _mode = GPIO_MODE_OUTPUT_OD;
-    }
-    return _mode;
+    uint32_t group, index;
+
+    group = (pin & GPIO_PIN_GROUP_MASK) >> GPIO_PIN_GROUP_SHIFT;
+    index = (pin & GPIO_PIN_INDEX_MASK) >> GPIO_PIN_INDEX_SHIFT;
+
+    gpio = (GPIO_TypeDef*) (GPIOA_BASE + ((GPIOB_BASE - GPIOA_BASE) * group));
+
+    gpio->MODER = ((gpio->MODER & ~(0x3 << (index << 1))) | ((GPIO_MODE_INPUT >> GPIO_MODE_SHIFT) << (index << 1)));
 }
 
-void gpio_set_alternate(gpio_port_t port, gpio_pin_t pin, gpio_alternate_t alternate) {
-    uint8_t _index = 0;
-    if (pin > GPIO_PIN_7) {
-        pin -= 8;
-        _index += 1;
-    }
-    uint32_t _pin_mask = 0xf << (pin << 2);
-    _gpio_port[port]->AFR[_index] &= ~_pin_mask;
-    _gpio_port[port]->AFR[_index] |= alternate << (pin << 2);
+void gpio_pin_output(uint32_t pin) {
+    GPIO_TypeDef *gpio;
+
+    uint32_t group, index;
+
+    group = (pin & GPIO_PIN_GROUP_MASK) >> GPIO_PIN_GROUP_SHIFT;
+    index = (pin & GPIO_PIN_INDEX_MASK) >> GPIO_PIN_INDEX_SHIFT;
+
+    gpio = (GPIO_TypeDef*) (GPIOA_BASE + ((GPIOB_BASE - GPIOA_BASE) * group));
+
+    gpio->MODER = ((gpio->MODER & ~(0x3 << (index << 1))) | ((GPIO_MODE_OUTPUT >> GPIO_MODE_SHIFT) << (index << 1)));
 }
 
-gpio_alternate_t gpio_get_alternate(gpio_port_t port, gpio_pin_t pin) {
-    uint8_t _index = 0;
-    if (pin > GPIO_PIN_7) {
-        pin -= 8;
-        _index += 1;
-    }
-    uint32_t _pin_mask = 0xf << (pin << 2);
-    return (gpio_alternate_t) (_gpio_port[port]->AFR[_index] & _pin_mask) >> (pin << 2);
+void gpio_pin_alternate(uint32_t pin) {
+    GPIO_TypeDef *gpio;
+
+    uint32_t group, index;
+
+    group = (pin & GPIO_PIN_GROUP_MASK) >> GPIO_PIN_GROUP_SHIFT;
+    index = (pin & GPIO_PIN_INDEX_MASK) >> GPIO_PIN_INDEX_SHIFT;
+
+    gpio = (GPIO_TypeDef*) (GPIOA_BASE + ((GPIOB_BASE - GPIOA_BASE) * group));
+
+    gpio->MODER = ((gpio->MODER & ~(0x3 << (index << 1))) | ((GPIO_MODE_ALTERNATE >> GPIO_MODE_SHIFT) << (index << 1)));
 }
 
-bool gpio_get_input(gpio_port_t port, gpio_pin_t pin) {
-    return (bool) ((_gpio_port[port]->IDR & (0x1 << pin)) >> pin);
-}
-
-void gpio_set_output(gpio_port_t port, gpio_pin_t pin, bool output) {
-    uint32_t _pin_mask = 1 << pin;
-    if (!output) {
-        _pin_mask <<= 16;
-    }
-    _gpio_port[port]->BSRR |= _pin_mask;
-}
-
-bool gpio_get_output(gpio_port_t port, gpio_pin_t pin) {
-    return (bool) ((_gpio_port[port]->ODR & (0x1 << pin)) >> pin);
-}
-
-void gpio_toggle_output(gpio_port_t port, gpio_pin_t pin) {
-    uint32_t _pin_mask = 1 << pin;
-    _gpio_port[port]->ODR ^= _pin_mask;
-}

@@ -20,7 +20,7 @@
 #include "tests.h"
 
 int main(void) {
-    tests_run();
 
+    tests_run();
     for (;;);
 }

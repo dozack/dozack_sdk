@@ -8,33 +8,32 @@
 #ifndef FIFO_H_
 #define FIFO_H_
 
-#include "common.h"
+#include "stdbool.h"
+
+#include "stm32l4xx.h"
 
 typedef struct {
     void *buffer;
-
-    uint32_t size;
-
-    uint32_t head;
-
-    uint32_t tail;
+    unsigned int size;
+    unsigned int head;
+    unsigned int tail;
 } fifo_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void fifo_init(fifo_t *obj, void *buffer, uint32_t size);
+void fifo_init(fifo_t *obj, void *buffer, unsigned int size);
 
 void fifo_purge(fifo_t *obj);
 
-uint32_t fifo_write(fifo_t *obj, const void *buffer, uint32_t length);
+unsigned intfifo_write(fifo_t *obj, const void *buffer, unsigned int length);
 
-uint32_t fifo_read(fifo_t *obj, void *buffer, uint32_t length);
+unsigned intfifo_read(fifo_t *obj, void *buffer, unsigned int length);
 
-uint32_t fifo_irq_write(fifo_t *obj, const void *buffer, uint32_t length);
+unsigned intfifo_irq_write(fifo_t *obj, const void *buffer, unsigned int length);
 
-uint32_t fifo_irq_read(fifo_t *obj, void *buffer, uint32_t length);
+unsigned intfifo_irq_read(fifo_t *obj, void *buffer, unsigned int length);
 
 bool fifo_is_empty(fifo_t *obj);
 

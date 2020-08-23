@@ -6,8 +6,6 @@
  */
 
 #include "exti.h"
-#include "irq.h"
-#include "stm32l4xx.h"
 
 static bool _exti_initialized = false;
 
@@ -28,7 +26,7 @@ void exti_register(exti_line_t line, exti_edge_t edge, void (*callback)(exti_lin
 
     uint8_t pin = line - (port << 4);
 
-    irq_disable();
+    __disable_irq();
 
     _exti_driver[pin].line = line;
     _exti_driver[pin].callback = callback;
@@ -85,7 +83,7 @@ void exti_register(exti_line_t line, exti_edge_t edge, void (*callback)(exti_lin
 
     EXTI->IMR1 |= mask;
 
-    irq_enable();
+    __enable_irq();
 }
 
 void exti_unregister(exti_line_t line) {
@@ -95,7 +93,7 @@ void exti_unregister(exti_line_t line) {
 
     uint32_t mask = 1 << pin;
 
-    irq_disable();
+    __disable_irq();
 
     if (line == _exti_driver[pin].line) {
         EXTI->IMR1 &= ~mask;
@@ -103,7 +101,7 @@ void exti_unregister(exti_line_t line) {
         EXTI->PR1 = mask;
     }
 
-    irq_enable();
+    __enable_irq();
 }
 
 static inline void _exti_irq_handler(void) {

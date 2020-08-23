@@ -19,7 +19,7 @@ void timer_init(void) {
 }
 
 void timer_start(void) {
-    TIM6->PSC = _timer_prescaler_lookup[system_get_clock_source()];
+    TIM6->PSC = _timer_prescaler_lookup[0];
 
     TIM6->CNT = 0;
 

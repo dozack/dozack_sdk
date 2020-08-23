@@ -24,6 +24,8 @@ void tests_scheduler(void);
 
 void tests_fifo(void);
 
+void tests_uart_dma(void);
+
 #ifdef __cplusplus
 }
 #endif

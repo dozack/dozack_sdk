@@ -8,7 +8,9 @@
 #ifndef EXTI_H_
 #define EXTI_H_
 
-#include "common.h"
+#include "stdbool.h"
+
+#include "stm32l4xx.h"
 
 typedef enum {
     EXTI_LINE_PA0,

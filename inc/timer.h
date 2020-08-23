@@ -8,7 +8,7 @@
 #ifndef TIMER_H_
 #define TIMER_H_
 
-#include "common.h"
+#include "stm32l4xx.h"
 
 #ifdef __cplusplus
 extern "C" {
