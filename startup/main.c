@@ -21,6 +21,6 @@
 
 int main(void) {
 
-    tests_run();
-    for (;;);
+  tests_run();
+  for (;;);
 }

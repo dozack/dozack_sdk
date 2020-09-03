@@ -13,10 +13,10 @@
 #include "stm32l4xx.h"
 
 typedef struct {
-    void *buffer;
-    unsigned int size;
-    unsigned int head;
-    unsigned int tail;
+  void *buffer;
+  unsigned int size;
+  unsigned int head;
+  unsigned int tail;
 } fifo_t;
 
 #ifdef __cplusplus

@@ -25,13 +25,13 @@ extern "C" {
  * @brief   Enum containing all available UART peripherals.
  */
 enum {
-    UART_INSTANCE_USART1 = 0,   /*<! USART1 */
-    UART_INSTANCE_USART2,       /*<! USART2 */
-    UART_INSTANCE_USART3,       /*<! USART3 */
-    UART_INSTANCE_UART4,        /*<! UART4 */
-    UART_INSTANCE_UART5,        /*<! UART5 */
-    UART_INSTANCE_LPUART1,      /*<! LPUART1 */
-    UART_INSTANCE_COUNT         /*<! Number of all available peripherals (used for lookup tables). */
+  UART_INSTANCE_USART1 = 0, /*<! USART1 */
+  UART_INSTANCE_USART2, /*<! USART2 */
+  UART_INSTANCE_USART3, /*<! USART3 */
+  UART_INSTANCE_UART4, /*<! UART4 */
+  UART_INSTANCE_UART5, /*<! UART5 */
+  UART_INSTANCE_LPUART1, /*<! LPUART1 */
+  UART_INSTANCE_COUNT /*<! Number of all available peripherals (used for lookup tables). */
 };
 
 /*
@@ -45,50 +45,9 @@ enum {
  * @endcond
  */
 
-/*
- * @cond
- */
-#define UART_OPTION_STOP_MASK        0x0000000f
-#define UART_OPTION_STOP_SHIFT       0
-/**
- * @endcond
- */
-#define UART_OPTION_STOP_1           0x00000000
-#define UART_OPTION_STOP_1_5         0x00000001
-#define UART_OPTION_STOP_2           0x00000002
-
-/*
- * @cond
- */
-#define UART_OPTION_PARITY_MASK      0x000000f0
-#define UART_OPTION_PARITY_SHIFT     4
-/**
- * @endcond
- */
-#define UART_OPTION_PARITY_NONE      0x00000000
-#define UART_OPTION_PARITY_ODD       0x00000010
-#define UART_OPTION_PARITY_EVEN      0x00000020
-
-/*
- * @cond
- */
-#define UART_OPTION_DATA_SIZE_MASK   0x00000f00
-#define UART_OPTION_DATA_SIZE_SHIFT  8
-/**
- * @endcond
- */
-#define UART_OPTION_DATA_SIZE_7      0x00000000
-#define UART_OPTION_DATA_SIZE_8      0x00000100
-#define UART_OPTION_DATA_SIZE_9      0x00000200
-
-#define UART_OPTION_CTS              0x00001000
-#define UART_OPTION_RTS              0x00002000
-#define UART_OPTION_DE_MODE          0x00004000
-#define UART_OPTION_DE_ACTIVE_LOW    0x00000000
-#define UART_OPTION_DE_ACTIVE_HIGH   0x00008000
-
 #define UART_NOTIFY_MODE_SINGLE      0x00000001
-#define UART_NOTIFY_MODE_HALF        0x00000002
+#define UART_NOTIFY_MODE_CHUNK       0x00000002
+#define UART_NOTIFY_CHUNK_SIZE		   16
 
 #define UART_EVENT_IDLE              0x00000001
 #define UART_EVENT_NOISE             0x00000002
@@ -97,8 +56,7 @@ enum {
 #define UART_EVENT_OVERRUN           0x00000010
 #define UART_EVENT_TIMEOUT           0x00000020
 #define UART_EVENT_RECEIVE           0x00000040
-#define UART_EVENT_TRANSMIT          0x80000080
-#define UART_EVENT_HALF_BUFFER       0x00000100
+#define UART_EVENT_TRANSMIT          0x00000080
 
 #define UART_STATE_NONE              0
 #define UART_STATE_INIT              1
@@ -116,33 +74,32 @@ typedef void (*uart_callback_t)(void *notify_context, uint32_t notify_events);
  * @brief   Structure containing GPIO pin information for UART peripheral.
  */
 typedef struct {
-    uint16_t rx;
-    uint16_t tx;
-    uint16_t cts;
-    uint16_t rts_de;
+  uint16_t rx;
+  uint16_t tx;
 } uart_pins_t;
 
 /**
  * @brief   Peripheral handle structure
  */
 typedef struct {
-    USART_TypeDef *hw;                  /*!< Peripheral memory map. */
-    uart_pins_t pins;                   /*!< Structure with pin configuration. */
-    volatile uint8_t state;             /*!< Actual state of instance. */
-    uint8_t instance;                   /*!< Index of instance. */
-    uint8_t interrupt;                  /*!< Interrupt index for async transfer. */
-    uint8_t priority;                   /*!< Interrupt priority. */
-    uint8_t mode;                       /*!< Reserved. */
-    uint8_t notify_mode;                /*!< Notify mode of reception routine. */
-    void *notify_context;               /*!< Optional callback context. */
-    uart_callback_t notify_callback;    /*!< Pointer to callback function. */
-    volatile uint32_t notify_events;    /*!< Notify event filter. */
-    const uint8_t *tx_data;             /*!< Pointer to data for transmission. */
-    volatile uint16_t tx_count;         /*!< Number of bytes to transfer. */
-    uint8_t *rx_data;                   /*!< Pointer to buffer for reception. */
-    uint16_t tx_done;                   /*!< Number of transmitted bytes. */
-    uint16_t rx_size;                   /*!< Size of reception buffer. */
-    volatile uint16_t rx_done;          /*!< Number of received bytes in buffer. */
+  USART_TypeDef *hw; /*!< Peripheral memory map. */
+  uart_pins_t pins; /*!< Structure with pin configuration. */
+  volatile uint8_t state; /*!< Actual state of instance. */
+  uint8_t instance; /*!< Index of instance. */
+  uint8_t interrupt; /*!< Interrupt index for async transfer. */
+  uint8_t priority; /*!< Interrupt priority. */
+  uint8_t mode; /*!< Reserved. */
+  uint8_t notify_mode; /*!< Notify mode of reception routine. */
+  void *notify_context; /*!< Optional callback context. */
+  uart_callback_t notify_callback; /*!< Pointer to callback function. */
+  volatile uint32_t notify_events; /*!< Notify event filter. */
+  const uint8_t *tx_data; /*!< Pointer to data for transmission. */
+  uint16_t tx_count; /*!< Number of bytes to transfer. */
+  uint8_t *rx_data; /*!< Pointer to buffer for reception. */
+  uint16_t tx_done; /*!< Number of transmitted bytes. */
+  uint16_t rx_size; /*!< Size of reception buffer. */
+  volatile uint16_t rx_done; /*!< Number of received bytes in buffer. */
+  uint16_t event_count; /*!< Event counter */
 } uart_t;
 
 /**
@@ -169,14 +126,13 @@ bool uart_destroy(uart_t *uart);
  * @param   Pointer to receive buffer.
  * @param   Receive buffer size in bytes.
  * @param   Communication bitrate.
- * @param   Optional - Configuration (default 7N1).
  * @param   User callback for event processing.
  * @param   Optional - Byte reception callback mode (default UART_NOTIFY_MODE_HALF).
  * @param   Optional callback arg (set to NULL in not used).
  * @param   Event callback arg stores which event triggered callback.
  * @return  True if successfuly executed.
  */
-bool uart_enable(uart_t *uart, uint8_t *rxd, uint16_t rxs, uint32_t btr, uint32_t opt, uart_callback_t cb, uint8_t mode, void *ctx, uint32_t ev);
+bool uart_enable(uart_t *uart, uint8_t *rxd, uint16_t rxs, uint32_t btr, uart_callback_t cb, uint8_t mode, void *ctx, uint32_t ev);
 
 /**
  * @brief   Disable current instance and deinitialize peripheral.
@@ -189,10 +145,9 @@ bool uart_disable(uart_t *uart);
  * @brief   Configure UART peripheral (called in uart_enable(), do not use if possible).
  * @param   Pointer to UART structure.
  * @param   Communication bitrate.
- * @param   Optional - configuration(default 7N1).
  * @return  True if successfuly executed.
  */
-bool uart_configure(uart_t *uart, uint32_t btr, uint32_t opt);
+bool uart_configure(uart_t *uart, uint32_t btr);
 
 /**
  * @brief   Register callback, its mode and arguments to instance.
@@ -207,7 +162,8 @@ bool uart_notify(uart_t *uart, unsigned int mode, uart_callback_t cb, void *cont
 
 /**
  * @brief   Read bytes from instance buffer
- * @todo    Currently supports receiving reading less or same number of available bytes. Implement partial data reading (for example if 8 bytes are read and only 4 available, return those 4).
+ * @todo    Currently supports receiving reading less or same number of available bytes.
+ *          Implement partial data reading (for example if 8 bytes are read and only 4 available, return those 4).
  * @param   Pointer to UART structure.
  * @param   Pointer to data target.
  * @param   Number of bytes to read.

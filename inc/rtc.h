@@ -22,22 +22,22 @@ extern "C" {
 #define RTC_TIME_MASK_YEAR       0x0020
 
 typedef struct {
-    uint8_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-    uint8_t ticks;
+  uint8_t year;
+  uint8_t month;
+  uint8_t day;
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
+  uint8_t ticks;
 } rtc_time_t;
 
 typedef struct {
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-    uint16_t ticks;
+  uint8_t month;
+  uint8_t day;
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
+  uint16_t ticks;
 } rtc_sync_t;
 
 typedef void (*rtc_callback_t)(void *context);
