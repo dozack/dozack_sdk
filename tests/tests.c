@@ -7,12 +7,40 @@
 
 #include "system.h"
 #include "gpio.h"
+#include "uart.h"
+
+void uart_callback(void *context, uint32_t events) {
+    uart_t *uart = (uart_t*) context;
+    if (events & UART_EVENT_OVERRUN)
+    {
+
+    }
+    if (events & UART_EVENT_RECEIVE)
+    {
+
+    }
+    if (events & UART_EVENT_TRANSMIT)
+    {
+
+    }
+}
+
+uart_t uart2 = {0};
+
+uart_pins_t uart2_pins = {.tx = GPIO_PIN_PA2_USART2_TX,
+    .rx = GPIO_PIN_PA3_USART2_RX,
+    .cts = GPIO_PIN_NONE,
+    .rts_de = GPIO_PIN_NONE};
+uint8_t rx_[32];
+
 void tests_run(void) {
     system_initialize(32768);
+    gpio_pin_configure(GPIO_PIN_PA8_MCO, (GPIO_MODE_ALTERNATE | GPIO_OTYPE_PUSHPULL | GPIO_PUPD_PULLDOWN | GPIO_OSPEED_VERY_HIGH));
+    system_mco_configure(SYSTEM_MCO_MODE_SYSCLK, 1);
+
     systick_initialize(3);
 
     system_sysclk_pll();
-    system_sysclk_msi();
 
     system_peripheral_enable(SYSTEM_PERIPH_GPIOA);
 
@@ -23,6 +51,10 @@ void tests_run(void) {
     gpio_pin_write(GPIO_PIN_PA5, 1);
 
     gpio_pin_write(GPIO_PIN_PA5, 0);
+
+    uart_create(&uart2, UART_INSTANCE_USART2, &uart2_pins, 10, 0);
+    uart_enable(&uart2, &rx_[0], sizeof(rx_), 115200, UART_OPTION_DATA_SIZE_8, &uart_callback, UART_NOTIFY_MODE_HALF, &uart2,
+                (UART_EVENT_TRANSMIT | UART_EVENT_RECEIVE | UART_EVENT_OVERRUN));
 }
 
 #if 0

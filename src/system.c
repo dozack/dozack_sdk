@@ -273,7 +273,6 @@ void system_initialize(uint32_t lseclk) {
         }
     }
     PWR->CR1 |= PWR_CR1_DBP;
-    FLASH->ACR |= FLASH_ACR_PRFTEN;
     RCC->CSR |= RCC_CSR_RMVF;
     RCC->CSR &= ~RCC_CSR_RMVF;
     _system.lseclk = lseclk;
@@ -283,9 +282,7 @@ void system_initialize(uint32_t lseclk) {
         {
             RCC->BDCR |= RCC_BDCR_LSEDRV;
             RCC->BDCR |= RCC_BDCR_LSEON;
-
             timeout = 0;
-
             while (!(RCC->BDCR & RCC_BDCR_LSERDY))
             {
                 if (++timeout >= 1000000)
@@ -320,13 +317,11 @@ void system_initialize(uint32_t lseclk) {
         RTC->WPR = 0xca;
         RTC->WPR = 0x53;
         RTC->ISR |= RTC_ISR_INIT;
-
         while (!(RTC->ISR & RTC_ISR_INITF))
         {
         }
 
         RTC->CR = RTC_CR_BYPSHAD;
-
         if (!_system.lseclk)
         {
             RTC->PRER = 0x000000ff;
@@ -337,13 +332,12 @@ void system_initialize(uint32_t lseclk) {
             RTC->PRER = 0x000000ff;
             RTC->PRER |= 0x007f0000;
         }
-
         RTC->ISR &= ~RTC_ISR_INIT;
     }
     RTC->ISR &= ~(RTC_ISR_WUTF | RTC_ISR_ALRBF | RTC_ISR_ALRAF);
     RTC->WPR = 0x00;
     DBGMCU->APB1FZR1 |= (DBGMCU_APB1FZR1_DBG_IWDG_STOP | DBGMCU_APB1FZR1_DBG_WWDG_STOP);
-#if 1
+#if 0
     DBGMCU->CR |= DBGMCU_CR_DBG_STANDBY | DBGMCU_CR_DBG_STOP | DBGMCU_CR_DBG_SLEEP;
     DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_RTC_STOP | DBGMCU_APB1FZR1_DBG_TIM2_STOP;
     DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM3_STOP | DBGMCU_APB1FZR1_DBG_TIM4_STOP;
@@ -358,18 +352,10 @@ void system_initialize(uint32_t lseclk) {
     _system.sysclk = SystemCoreClock;
     PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_1;
     while (PWR->SR2 & PWR_SR2_VOSF);
-
     RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLSRC) | RCC_PLLCFGR_PLLSRC_HSI;
     RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLR) | RCC_PLLCFGR_PLLR_0;
     RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLN) | (RCC_PLLCFGR_PLLN_3 | RCC_PLLCFGR_PLLN_1);
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
-
-#if 0
-    SysTick->LOAD = 4000 - 1;
-    SysTick->VAL = 0;
-    SysTick->CTRL |= _systick
-    SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
-#endif
     PWR->CR1 &= ~PWR_CR1_DBP;
     RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
     __set_PRIMASK(primask);
@@ -388,7 +374,10 @@ void system_sysclk_pll(void) {
         __disable_irq();
         PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_0;
         system_hsi16_enable();
-        RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SWS) | RCC_CFGR_SWS_PLL;
+        RCC->CR |= RCC_CR_PLLON;
+        while (!(RCC->CR & RCC_CR_PLLRDY));
+        RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
+        FLASH->ACR |= FLASH_ACR_LATENCY;
 #if 0
         SysTick->LOAD = 80000 - 1;
 #endif
@@ -410,10 +399,10 @@ void system_sysclk_msi(void) {
         RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
         systick_disable();
         __disable_irq();
-        RCC->CFGR = (RCC->CR & ~RCC_CFGR_SWS) | RCC_CFGR_SWS_MSI;
+        RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_MSI;
         RCC->CR &= ~RCC_CR_PLLON;
         while (RCC->CR & RCC_CR_PLLRDY);
-        FLASH->ACR &= FLASH_ACR_LATENCY;
+        FLASH->ACR &= ~FLASH_ACR_LATENCY;
         FLASH->ACR;
         system_hsi16_disable();
 #if 0
