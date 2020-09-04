@@ -7,7 +7,8 @@
 
 #include "system.h"
 
-static volatile uint32_t *const _system_RSTR[SYSTEM_PERIPH_COUNT] = { &RCC->AHB1RSTR, /* SYSTEM_PERIPH_FLASH */
+static volatile uint32_t *const _system_RSTR[SYSTEM_PERIPH_COUNT] = {
+  &RCC->AHB1RSTR, /* SYSTEM_PERIPH_FLASH */
   NULL, /* SYSTEM_PERIPH_SRAM1 */
   NULL, /* SYSTEM_PERIPH_SRAM2 */
   &RCC->AHB1RSTR, /* SYSTEM_PERIPH_DMA1 */
@@ -57,7 +58,7 @@ static volatile uint32_t *const _system_RSTR[SYSTEM_PERIPH_COUNT] = { &RCC->AHB1
 };
 
 static uint32_t const _system_RSTMSK[SYSTEM_PERIPH_COUNT] = {
-RCC_AHB1RSTR_FLASHRST, /* SYSTEM_PERIPH_FLASH */
+  RCC_AHB1RSTR_FLASHRST, /* SYSTEM_PERIPH_FLASH */
   0, /* SYSTEM_PERIPH_SRAM1 */
   0, /* SYSTEM_PERIPH_SRAM2 */
   RCC_AHB1RSTR_DMA1RST, /* SYSTEM_PERIPH_DMA1 */
@@ -106,7 +107,8 @@ RCC_AHB1RSTR_FLASHRST, /* SYSTEM_PERIPH_FLASH */
   RCC_APB1RSTR2_LPTIM2RST, /* SYSTEM_PERIPH_LPTIM2 */
 };
 
-static volatile uint32_t *const _system_ENR[SYSTEM_PERIPH_COUNT] = { &RCC->AHB1ENR, /* SYSTEM_PERIPH_FLASH */
+static volatile uint32_t *const _system_ENR[SYSTEM_PERIPH_COUNT] = {
+  &RCC->AHB1ENR, /* SYSTEM_PERIPH_FLASH */
   NULL, /* SYSTEM_PERIPH_SRAM1 */
   NULL, /* SYSTEM_PERIPH_SRAM2 */
   &RCC->AHB1ENR, /* SYSTEM_PERIPH_DMA1 */
@@ -156,7 +158,7 @@ static volatile uint32_t *const _system_ENR[SYSTEM_PERIPH_COUNT] = { &RCC->AHB1E
 };
 
 static uint32_t const _system_ENMSK[SYSTEM_PERIPH_COUNT] = {
-RCC_AHB1ENR_FLASHEN, /* SYSTEM_PERIPH_FLASH */
+  RCC_AHB1ENR_FLASHEN, /* SYSTEM_PERIPH_FLASH */
   0, /* SYSTEM_PERIPH_SRAM1 */
   0, /* SYSTEM_PERIPH_SRAM2 */
   RCC_AHB1ENR_DMA1EN, /* SYSTEM_PERIPH_DMA1 */
@@ -350,14 +352,14 @@ void system_initialize(uint32_t lseclk) {
   _system.sysclk = SystemCoreClock;
   PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_1;
   while (PWR->SR2 & PWR_SR2_VOSF);
+  PWR->CR1 &= ~PWR_CR1_DBP;
+  RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
   RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLSRC) | RCC_PLLCFGR_PLLSRC_HSI;
   RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLR) | RCC_PLLCFGR_PLLR_0;
   RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLN) | (RCC_PLLCFGR_PLLN_3 | RCC_PLLCFGR_PLLN_1);
   RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
-  PWR->CR1 &= ~PWR_CR1_DBP;
-  RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
+  arm_systick_enable();
   __set_PRIMASK(primask);
-  systick_enable();
 }
 
 void system_sysclk_pll(void) {
@@ -368,7 +370,7 @@ void system_sysclk_pll(void) {
   else
   {
     RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
-    systick_disable();
+    arm_systick_disable();
     __disable_irq();
     PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_0;
     system_hsi16_enable();
@@ -376,13 +378,10 @@ void system_sysclk_pll(void) {
     while (!(RCC->CR & RCC_CR_PLLRDY));
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
     FLASH->ACR |= FLASH_ACR_LATENCY;
-#if 0
-        SysTick->LOAD = 80000 - 1;
-#endif
     SystemCoreClock = 80000000;
     _system.sysclk = SystemCoreClock;
     __enable_irq();
-    systick_enable();
+    arm_systick_enable();
     RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
   }
 }
@@ -395,7 +394,7 @@ void system_sysclk_msi(void) {
   else
   {
     RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
-    systick_disable();
+    arm_systick_disable();
     __disable_irq();
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_MSI;
     RCC->CR &= ~RCC_CR_PLLON;
@@ -403,13 +402,10 @@ void system_sysclk_msi(void) {
     FLASH->ACR &= ~FLASH_ACR_LATENCY;
     FLASH->ACR;
     system_hsi16_disable();
-#if 0
-        SysTick->LOAD = 4000 - 1;
-#endif
     SystemCoreClock = 4000000;
     _system.sysclk = SystemCoreClock;
     __enable_irq();
-    systick_enable();
+    arm_systick_enable();
     PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_1;
     RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
   }

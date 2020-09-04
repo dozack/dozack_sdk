@@ -4,6 +4,7 @@
 #include "uart.h"
 #include "gpio.h"
 #include "system.h"
+#include "arm_pendsv.h"
 
 typedef struct {
   uart_t *instances[UART_INSTANCE_COUNT];
@@ -136,7 +137,10 @@ static void _uart_interrupt(uart_t *uart) {
   /* If some requested events are triggered, jump to callback function */
   if (events)
   {
+    arm_pendsv_enqueue(uart->notify_callback, uart->notify_context, events);
+#if 0
     (*uart->notify_callback)(uart->notify_context, events);
+#endif
   }
 }
 

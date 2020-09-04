@@ -8,6 +8,11 @@
 #include "system.h"
 #include "gpio.h"
 #include "uart.h"
+#include "arm.h"
+
+uint8_t temp_buffer[64] = {
+  0 };
+uint8_t idx = 0;
 
 void uart_callback(void *context, uint32_t events) {
   uart_t *uart = (uart_t*) context;
@@ -17,7 +22,11 @@ void uart_callback(void *context, uint32_t events) {
   }
   if (events & UART_EVENT_RECEIVE)
   {
-
+    uart_receive(uart, &temp_buffer[idx++], 1);
+    if (idx >= 64)
+    {
+      idx = 0;
+    }
   }
   if (events & UART_EVENT_TRANSMIT)
   {
@@ -35,13 +44,13 @@ uint8_t rx_[32];
 
 void tests_run(void) {
   system_initialize(32768);
+  arm_pendsv_initialize();
+  arm_systick_initialize(3);
 
   uint32_t pin_config = (GPIO_MODE_ALTERNATE | GPIO_OTYPE_PUSHPULL | GPIO_PUPD_NONE | GPIO_OSPEED_VERY_HIGH);
   gpio_pin_configure(GPIO_PIN_PA8_MCO, pin_config);
 
   system_mco_configure(SYSTEM_MCO_MODE_SYSCLK, 1);
-
-  systick_initialize(3);
 
   system_sysclk_pll();
 
@@ -52,9 +61,15 @@ void tests_run(void) {
   pin_config = (GPIO_MODE_OUTPUT | GPIO_OSPEED_VERY_HIGH | GPIO_OTYPE_PUSHPULL | GPIO_PUPD_PULLDOWN);
   gpio_pin_configure(GPIO_PIN_PA5, pin_config);
 
-  gpio_pin_write(GPIO_PIN_PA5, 1);
-
-  gpio_pin_write(GPIO_PIN_PA5, 0);
+  uint32_t i = 10;
+  do
+  {
+    gpio_pin_write(GPIO_PIN_PA5, 1);
+    arm_core_udelay(100000);
+    gpio_pin_write(GPIO_PIN_PA5, 0);
+    arm_core_udelay(100000);
+  }
+  while (i-- > 0);
 
   uint32_t uart_events = (UART_EVENT_TRANSMIT | UART_EVENT_RECEIVE | UART_EVENT_OVERRUN);
   uart_create(&uart2, UART_INSTANCE_USART2, &uart2_pins, 10, 0);
