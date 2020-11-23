@@ -228,11 +228,11 @@ bool uart_enable(uart_t *uart, uint8_t *rx_data, uint16_t rx_size, uint32_t btr,
 }
 
 bool uart_disable(uart_t *uart) {
-  USART_TypeDef *_uart = uart->hw;
   if (uart->state != UART_STATE_READY)
   {
     return false;
   }
+  USART_TypeDef *_uart = uart->hw;
   uart->notify_events = 0;
   uart->notify_callback = NULL;
   uart->notify_context = NULL;
@@ -256,8 +256,6 @@ bool uart_disable(uart_t *uart) {
 }
 
 bool uart_configure(uart_t *uart, uint32_t btr) {
-  USART_TypeDef *_uart = uart->hw;
-  uint32_t cr1, cr2, cr3;
   if ((uart->state != UART_STATE_READY) && (uart->state != UART_STATE_BUSY))
   {
     return false;
@@ -274,6 +272,8 @@ bool uart_configure(uart_t *uart, uint32_t btr) {
   {
     NVIC_DisableIRQ(uart->interrupt);
   }
+  USART_TypeDef *_uart = uart->hw;
+  uint32_t cr1, cr2, cr3;
   _uart->CR1 = 0;
   cr1 = 0;
   cr2 = 0;
@@ -326,11 +326,11 @@ bool uart_configure(uart_t *uart, uint32_t btr) {
 }
 
 bool uart_notify(uart_t *uart, unsigned int mode, uart_callback_t cb, void *context, uint32_t events) {
-  USART_TypeDef *_uart = uart->hw;
   if (uart->state != UART_STATE_READY)
   {
     return false;
   }
+  USART_TypeDef *_uart = uart->hw;
   uart->notify_mode = mode;
   uart->notify_events = events;
   uart->notify_callback = cb;
@@ -386,11 +386,11 @@ unsigned int uart_count(uart_t *uart) {
 }
 
 bool uart_transmit_it(uart_t *uart, const uint8_t *tx_data, uint16_t tx_count) {
-  USART_TypeDef *_uart = uart->hw;
   if (uart->state != UART_STATE_READY)
   {
     return false;
   }
+  USART_TypeDef *_uart = uart->hw;
   uart->state = UART_STATE_TRANSMIT;
   _uart->TDR = *tx_data++;
   uart->tx_data = tx_data;

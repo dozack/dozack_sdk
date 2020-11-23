@@ -74,9 +74,7 @@ void arm_core_udelay(uint32_t udelay) {
     _arm_core.clock = SystemCoreClock;
     _arm_core.scale = SystemCoreClock / 1000000;
   }
-
   n = (udelay * _arm_core.scale + 2) / 3;
-
   __asm__ __volatile__(
       "1: subs %0, #1 \n"
       "   bne  1b     \n"

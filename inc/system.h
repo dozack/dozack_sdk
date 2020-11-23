@@ -17,6 +17,9 @@
 extern "C" {
 #endif
 
+/**
+ * @brief All available peripherals
+ */
 enum {
   SYSTEM_PERIPH_FLASH = 0,
   SYSTEM_PERIPH_SRAM1,
@@ -68,25 +71,29 @@ enum {
   SYSTEM_PERIPH_COUNT
 };
 
-#define SYSTEM_RESET_POWERON          0
-#define SYSTEM_RESET_EXTERNAL         1
-#define SYSTEM_RESET_SOFTWARE         2
-#define SYSTEM_RESET_WATCHDOG         3
-#define SYSTEM_RESET_BROWNOUT         4
-#define SYSTEM_RESET_FIREWALL         5
-#define SYSTEM_RESET_OTHER            6
-#define SYSTEM_RESET_STANDBY          7
+/**
+ * @brief System reset causes
+ */
+#define SYSTEM_RESET_POWERON          0x00
+#define SYSTEM_RESET_EXTERNAL         0x01
+#define SYSTEM_RESET_SOFTWARE         0x02
+#define SYSTEM_RESET_WATCHDOG         0x03
+#define SYSTEM_RESET_BROWNOUT         0x04
+#define SYSTEM_RESET_FIREWALL         0x05
+#define SYSTEM_RESET_OTHER            0x06
+#define SYSTEM_RESET_STANDBY          0x07
 
-#define SYSTEM_MCO_MODE_NONE          0
-#define SYSTEM_MCO_MODE_SYSCLK        1
-#define SYSTEM_MCO_MODE_MSI           2
-#define SYSTEM_MCO_MODE_HSI16         3
-#if 0 /* TODO */
-#define SYSTEM_MCO_MODE_HSE           4
-#endif
-#define SYSTEM_MCO_MODE_PLL           5
-#define SYSTEM_MCO_MODE_LSI           6
-#define SYSTEM_MCO_MODE_LSE           7
+/**
+ * @brief Microcontroller clock output modes
+ */
+#define SYSTEM_MCO_MODE_NONE          0x00
+#define SYSTEM_MCO_MODE_SYSCLK        0x01
+#define SYSTEM_MCO_MODE_MSI           0x02
+#define SYSTEM_MCO_MODE_HSI16         0x03
+#define SYSTEM_MCO_MODE_HSE           0x04
+#define SYSTEM_MCO_MODE_PLL           0x05
+#define SYSTEM_MCO_MODE_LSI           0x06
+#define SYSTEM_MCO_MODE_LSE           0x07
 
 void system_peripheral_reset(unsigned int peripheral);
 void system_peripheral_enable(unsigned int peripheral);
@@ -104,8 +111,6 @@ uint32_t system_lseclk(void);
 uint32_t system_sysclk(void);
 void system_reset(void);
 void system_dfu(void);
-void system_lock_aquire(void);
-void system_lock_release(void);
 
 #ifdef __cplusplus
 }

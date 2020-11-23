@@ -214,7 +214,6 @@ typedef struct {
     uint32_t hseclk;
 #endif
   uint32_t sysclk;
-  uint8_t lock;
   uint8_t mco;
   uint8_t lsi;
   uint8_t hsi16;
@@ -239,7 +238,10 @@ void system_initialize(uint32_t lseclk) {
   uint32_t primask = __get_PRIMASK();
   uint32_t timeout = 0;
   __disable_irq();
+  /* Enable flash prefetch mode */
+  FLASH->ACR |= FLASH_ACR_PRFTEN;
   RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
+  /* Detect reset cause */
   if (PWR->SR1 & PWR_SR1_SBF)
   {
     _system.reset = SYSTEM_RESET_STANDBY;
@@ -272,10 +274,12 @@ void system_initialize(uint32_t lseclk) {
       _system.reset = SYSTEM_RESET_EXTERNAL;
     }
   }
+  /* Enable access to backup registers */
   PWR->CR1 |= PWR_CR1_DBP;
   RCC->CSR |= RCC_CSR_RMVF;
   RCC->CSR &= ~RCC_CSR_RMVF;
   _system.lseclk = lseclk;
+  /* Enable lse if present */
   if (lseclk)
   {
     if (!(RCC->BDCR & RCC_BDCR_LSEON))
@@ -294,6 +298,7 @@ void system_initialize(uint32_t lseclk) {
       }
     }
   }
+  /* Enable lsi if lse not present */
   if (!_system.lseclk)
   {
     RCC->CSR |= RCC_CSR_LSION;
@@ -304,8 +309,10 @@ void system_initialize(uint32_t lseclk) {
   {
     RCC->CSR &= ~RCC_CSR_LSION;
   }
+  /* Configure rtc if not already */
   if (!(RCC->BDCR & RCC_BDCR_RTCEN))
   {
+    /* Set rtc clock source */
     if (!_system.lseclk)
     {
       RCC->BDCR = (RCC->BDCR & ~RCC_BDCR_RTCSEL) | (RCC_BDCR_RTCSEL_1 | RCC_BDCR_RTCEN);
@@ -314,13 +321,12 @@ void system_initialize(uint32_t lseclk) {
     {
       RCC->BDCR = (RCC->BDCR & ~RCC_BDCR_RTCSEL) | (RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN);
     }
+    /* Unlock rtc */
     RTC->WPR = 0xca;
     RTC->WPR = 0x53;
     RTC->ISR |= RTC_ISR_INIT;
-    while (!(RTC->ISR & RTC_ISR_INITF))
-    {
-    }
-
+    while (!(RTC->ISR & RTC_ISR_INITF));
+    /* Bypass shadow registers to get actual information */
     RTC->CR = RTC_CR_BYPSHAD;
     if (!_system.lseclk)
     {
@@ -334,52 +340,56 @@ void system_initialize(uint32_t lseclk) {
     }
     RTC->ISR &= ~RTC_ISR_INIT;
   }
+  /* Clear interrupt flags and lock rtc */
   RTC->ISR &= ~(RTC_ISR_WUTF | RTC_ISR_ALRBF | RTC_ISR_ALRAF);
   RTC->WPR = 0x00;
+  /* Disable watchdogs during debug session */
   DBGMCU->APB1FZR1 |= (DBGMCU_APB1FZR1_DBG_IWDG_STOP | DBGMCU_APB1FZR1_DBG_WWDG_STOP);
-#if 0
-    DBGMCU->CR |= DBGMCU_CR_DBG_STANDBY | DBGMCU_CR_DBG_STOP | DBGMCU_CR_DBG_SLEEP;
-    DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_RTC_STOP | DBGMCU_APB1FZR1_DBG_TIM2_STOP;
-    DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM3_STOP | DBGMCU_APB1FZR1_DBG_TIM4_STOP;
-    DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM5_STOP | DBGMCU_APB1FZR1_DBG_TIM6_STOP;
-    DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM7_STOP | DBGMCU_APB1FZR1_DBG_LPTIM1_STOP;
-    DBGMCU->APB1FZR2 |= DBGMCU_APB1FZR2_DBG_LPTIM2_STOP;
-    DBGMCU->APB2FZ |= DBGMCU_APB2FZ_DBG_TIM15_STOP | DBGMCU_APB2FZ_DBG_TIM16_STOP;
-    DBGMCU->APB2FZ |= DBGMCU_APB2FZ_DBG_TIM17_STOP | DBGMCU_APB2FZ_DBG_TIM1_STOP;
-    DBGMCU->APB2FZ |= DBGMCU_APB2FZ_DBG_TIM8_STOP;
-#endif
-  SystemCoreClock = 4000000;
+  /* Actual clock is 4 mhz (msi) */
   _system.sysclk = SystemCoreClock;
+  /* Set voltage range 2 */
   PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_1;
   while (PWR->SR2 & PWR_SR2_VOSF);
+  /* Disable backup domain access */
   PWR->CR1 &= ~PWR_CR1_DBP;
   RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
+  /* Confgure pll allowing 80 mhz sysclk */
   RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLSRC) | RCC_PLLCFGR_PLLSRC_HSI;
-  RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLR) | RCC_PLLCFGR_PLLR_0;
+  RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLR);
   RCC->PLLCFGR = (RCC->PLLCFGR & ~RCC_PLLCFGR_PLLN) | (RCC_PLLCFGR_PLLN_3 | RCC_PLLCFGR_PLLN_1);
   RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
+  /* Enable systick counter */
   arm_systick_enable();
   __set_PRIMASK(primask);
 }
 
 void system_sysclk_pll(void) {
+  /* Already running from pll */
   if (_system.hsi16)
   {
     return;
   }
   else
   {
+    /* Enable hsi */
+    system_hsi16_enable();
     RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
+    /* Set flash latency to 4 wait states */
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY) | FLASH_ACR_LATENCY_4WS;
+    /* Disable systick and interrupts */
     arm_systick_disable();
     __disable_irq();
+    /* Switch to voltage range 1 */
     PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_0;
-    system_hsi16_enable();
+    while (PWR->SR2 & PWR_SR2_VOSF);
+    /* Enable pll and wait for its startup */
     RCC->CR |= RCC_CR_PLLON;
     while (!(RCC->CR & RCC_CR_PLLRDY));
+    /* Switch clock source to pll */
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
-    FLASH->ACR |= FLASH_ACR_LATENCY;
     SystemCoreClock = 80000000;
     _system.sysclk = SystemCoreClock;
+    /* Enable interrupts and systick */
     __enable_irq();
     arm_systick_enable();
     RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
@@ -387,6 +397,7 @@ void system_sysclk_pll(void) {
 }
 
 void system_sysclk_msi(void) {
+  /* Already running from msi */
   if (!_system.hsi16)
   {
     return;
@@ -394,72 +405,63 @@ void system_sysclk_msi(void) {
   else
   {
     RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
+    /* Disable systick and interrupts */
     arm_systick_disable();
     __disable_irq();
+    /* Switch clock source to msi */
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_MSI;
+    /* Disable pll */
     RCC->CR &= ~RCC_CR_PLLON;
     while (RCC->CR & RCC_CR_PLLRDY);
-    FLASH->ACR &= ~FLASH_ACR_LATENCY;
-    FLASH->ACR;
-    system_hsi16_disable();
     SystemCoreClock = 4000000;
     _system.sysclk = SystemCoreClock;
+    /* Enable interrupts and systick */
     __enable_irq();
     arm_systick_enable();
+    /* Reset flash latency */
+    FLASH->ACR &= ~FLASH_ACR_LATENCY;
+    /* Disable hsi */
+    system_hsi16_disable();
+    /* Switch to voltage range 2 */
     PWR->CR1 = (PWR->CR1 & ~PWR_CR1_VOS) | PWR_CR1_VOS_1;
+    while (PWR->SR2 & PWR_SR2_VOSF);
     RCC->APB1ENR1 &= ~RCC_APB1ENR1_PWREN;
   }
 }
 
 void system_lsi_enable(void) {
   uint32_t primask = __get_PRIMASK();
-  uint32_t lsi = _system.lsi;
   __disable_irq();
-  if (!lsi)
-  {
-    RCC->CSR |= RCC_CSR_LSION;
-    while (!(RCC->CSR & RCC_CSR_LSIRDY));
-  }
-  _system.lsi = ++lsi;
+  RCC->CSR |= RCC_CSR_LSION;
+  while (!(RCC->CSR & RCC_CSR_LSIRDY));
+  _system.lsi = 1;
   __set_PRIMASK(primask);
 }
 
 void system_lsi_disable(void) {
   uint32_t primask = __get_PRIMASK();
-  uint32_t lsi = --_system.lsi;
   __disable_irq();
-  if (!lsi)
-  {
-    RCC->CSR &= ~RCC_CSR_LSION;
-    while (RCC->CSR & RCC_CSR_LSIRDY);
-  }
-  _system.lsi = lsi;
+  RCC->CSR &= ~RCC_CSR_LSION;
+  while (RCC->CSR & RCC_CSR_LSIRDY);
+  _system.lsi = 0;
   __set_PRIMASK(primask);
 }
 
 void system_hsi16_enable(void) {
   uint32_t primask = __get_PRIMASK();
-  uint32_t hsi = _system.hsi16;
   __disable_irq();
-  if (!hsi)
-  {
-    RCC->CR |= RCC_CR_HSION;
-    while (!(RCC->CR & RCC_CR_HSION));
-  }
-  _system.hsi16 = ++hsi;
+  RCC->CR |= RCC_CR_HSION;
+  while (!(RCC->CR & RCC_CR_HSION));
+  _system.hsi16 = 1;
   __set_PRIMASK(primask);
 }
 
 void system_hsi16_disable(void) {
   uint32_t primask = __get_PRIMASK();
-  uint32_t hsi = --_system.hsi16;
   __disable_irq();
-  if (!hsi)
-  {
-    RCC->CR &= ~RCC_CR_HSION;
-    while (RCC->CR & RCC_CR_HSION);
-  }
-  _system.hsi16 = hsi;
+  RCC->CR &= ~RCC_CR_HSION;
+  while (RCC->CR & RCC_CR_HSION);
+  _system.hsi16 = 0;
   __set_PRIMASK(primask);
 }
 
@@ -468,49 +470,6 @@ void system_mco_configure(unsigned int mode, unsigned int divider) {
   uint32_t mcopre = 0;
   __disable_irq();
   RCC->CFGR &= ~(RCC_CFGR_MCOSEL | RCC_CFGR_MCOPRE);
-
-  if (_system.mco != mode)
-  {
-    switch (_system.mco)
-    {
-      case SYSTEM_MCO_MODE_NONE:
-      case SYSTEM_MCO_MODE_SYSCLK:
-      case SYSTEM_MCO_MODE_MSI:
-#if 0
-            case SYSTEM_MCO_MODE_HSE:
-#endif
-      case SYSTEM_MCO_MODE_PLL:
-      case SYSTEM_MCO_MODE_LSE:
-        break;
-      case SYSTEM_MCO_MODE_LSI:
-        system_lsi_disable();
-        break;
-      case SYSTEM_MCO_MODE_HSI16:
-        system_hsi16_disable();
-        break;
-    }
-
-    _system.mco = mode;
-
-    switch (_system.mco)
-    {
-      case SYSTEM_MCO_MODE_NONE:
-      case SYSTEM_MCO_MODE_SYSCLK:
-      case SYSTEM_MCO_MODE_MSI:
-#if 0
-            case SYSTEM_MCO_MODE_HSE:
-#endif
-      case SYSTEM_MCO_MODE_PLL:
-      case SYSTEM_MCO_MODE_LSE:
-        break;
-      case SYSTEM_MCO_MODE_LSI:
-        system_lsi_enable();
-        break;
-      case SYSTEM_MCO_MODE_HSI16:
-        system_hsi16_enable();
-        break;
-    }
-  }
   if (divider <= 1)
   {
     mcopre = RCC_CFGR_MCOPRE_DIV1;
@@ -551,13 +510,7 @@ void system_reset(void) {
   NVIC_SystemReset();
 }
 
-void system_dfu(void);
+void system_dfu(void) {
 
-void system_lock_aquire(void) {
-  _system.lock += 1;
-}
-
-void system_lock_release(void) {
-  _system.lock -= 1;
 }
 

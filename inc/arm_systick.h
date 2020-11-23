@@ -18,8 +18,6 @@ typedef void (*arm_systick_callback_t)(void *context, uint32_t arg);
 
 uint64_t arm_systick_millis(void);
 
-uint64_t arm_systick_micros(void);
-
 void arm_systick_delay(uint32_t delay_ms);
 
 void arm_systick_notify(arm_systick_callback_t callback, void *context);

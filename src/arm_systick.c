@@ -10,13 +10,11 @@
 #include "stm32l4xx.h"
 
 typedef struct {
-  volatile uint64_t micros;
   volatile uint64_t millis;
   uint32_t clock;
   uint32_t cycle;
   uint32_t frac;
   uint32_t accum;
-  uint32_t scale;
   arm_systick_callback_t callback;
   void *context;
 } systick_driver_t;
@@ -25,19 +23,6 @@ static systick_driver_t _arm_systick;
 
 uint64_t arm_systick_millis(void) {
   return _arm_systick.millis;
-}
-
-uint64_t arm_systick_micros(void) {
-  uint64_t micros;
-  uint32_t count;
-  do
-  {
-    micros = _arm_systick.micros;
-    count = SysTick->VAL;
-  }
-  while (micros != _arm_systick.micros);
-  micros += ((((_arm_systick.cycle - 1) - count) * _arm_systick.scale) >> 22);
-  return micros;
 }
 
 void arm_systick_delay(uint32_t delay_ms) {
@@ -61,30 +46,17 @@ void arm_systick_initialize(unsigned int priority) {
 }
 
 void arm_systick_enable(void) {
-  uint32_t cycle = 0;
-  uint32_t count = 0;
-
   if (_arm_systick.clock != system_sysclk())
   {
-
     _arm_systick.clock = system_sysclk();
     _arm_systick.cycle = _arm_systick.clock / 1000;
     _arm_systick.frac = _arm_systick.clock - (_arm_systick.cycle * 1000);
     _arm_systick.accum = 0;
-
-    cycle = _arm_systick.cycle;
-        count = (_arm_systick.cycle - 1) - SysTick->VAL;
-
-    SysTick->VAL = (_arm_systick.cycle - 1) - ((count * _arm_systick.cycle) / cycle);
+    SysTick->VAL = 0;
     SysTick->LOAD = (_arm_systick.cycle - 1);
-    SysTick->CTRL |= (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk);
-
-    _arm_systick.scale = (uint64_t) 4194304000000ull / (uint64_t) _arm_systick.clock;
   }
-  else
-  {
-    SysTick->CTRL |= (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk);
-  }
+  SysTick->CTRL;
+  SysTick->CTRL |= (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk);
 }
 
 void arm_systick_disable(void) {
@@ -92,9 +64,7 @@ void arm_systick_disable(void) {
 }
 
 void SysTick_Handler(void) {
-  _arm_systick.micros += 1000;
-  _arm_systick.millis += 1;
-
+  _arm_systick.millis++;
   if (_arm_systick.frac)
   {
     _arm_systick.accum += _arm_systick.frac;
@@ -110,7 +80,7 @@ void SysTick_Handler(void) {
   }
   if (_arm_systick.callback)
   {
-    arm_pendsv_enqueue((arm_pendsv_routine_t)_arm_systick.callback, _arm_systick.context, _arm_systick.millis);
+    arm_pendsv_enqueue((arm_pendsv_routine_t) _arm_systick.callback, _arm_systick.context, _arm_systick.millis);
   }
 }
 

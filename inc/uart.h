@@ -38,32 +38,32 @@ enum {
  * @cond
  */
 #if 0
-#define UART_MODE_TX_DMA             0x00000001
-#define UART_MODE_RX_DMA             0x00000002
+#define UART_MODE_TX_DMA             0x01
+#define UART_MODE_RX_DMA             0x02
 #endif
 /**
  * @endcond
  */
 
-#define UART_NOTIFY_MODE_SINGLE      0x00000001
-#define UART_NOTIFY_MODE_CHUNK       0x00000002
-#define UART_NOTIFY_CHUNK_SIZE		   16
+#define UART_NOTIFY_MODE_SINGLE      0x01
+#define UART_NOTIFY_MODE_CHUNK       0x02
+#define UART_NOTIFY_CHUNK_SIZE		   0x10
 
-#define UART_EVENT_IDLE              0x00000001
-#define UART_EVENT_NOISE             0x00000002
-#define UART_EVENT_PARITY            0x00000004
-#define UART_EVENT_FRAMING           0x00000008
-#define UART_EVENT_OVERRUN           0x00000010
-#define UART_EVENT_TIMEOUT           0x00000020
-#define UART_EVENT_RECEIVE           0x00000040
-#define UART_EVENT_TRANSMIT          0x00000080
+#define UART_EVENT_IDLE              0x01
+#define UART_EVENT_NOISE             0x02
+#define UART_EVENT_PARITY            0x04
+#define UART_EVENT_FRAMING           0x08
+#define UART_EVENT_OVERRUN           0x10
+#define UART_EVENT_TIMEOUT           0x20
+#define UART_EVENT_RECEIVE           0x40
+#define UART_EVENT_TRANSMIT          0x80
 
-#define UART_STATE_NONE              0
-#define UART_STATE_INIT              1
-#define UART_STATE_BUSY              2
-#define UART_STATE_READY             3
-#define UART_STATE_TRANSMIT          4
-#define UART_STATE_BREAK             5
+#define UART_STATE_NONE              0x00
+#define UART_STATE_INIT              0x01
+#define UART_STATE_BUSY              0x02
+#define UART_STATE_READY             0x03
+#define UART_STATE_TRANSMIT          0x04
+#define UART_STATE_BREAK             0x05
 
 /**
  * @brief   Callback function type definition.
@@ -129,7 +129,7 @@ bool uart_destroy(uart_t *uart);
  * @param   User callback for event processing.
  * @param   Optional - Byte reception callback mode (default UART_NOTIFY_MODE_HALF).
  * @param   Optional callback arg (set to NULL in not used).
- * @param   Event callback arg stores which event triggered callback.
+ * @param   Event filter setting events triggering notification.
  * @return  True if successfuly executed.
  */
 bool uart_enable(uart_t *uart, uint8_t *rxd, uint16_t rxs, uint32_t btr, uart_callback_t cb, uint8_t mode, void *ctx, uint32_t ev);
